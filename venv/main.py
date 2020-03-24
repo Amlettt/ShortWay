@@ -21,6 +21,8 @@ class Canvas(QLabel):
     preview_pen = None
 
     timer_event = None
+    start = False
+    finish = False
     
     mode = 'rectangle'
 
@@ -184,29 +186,32 @@ class Canvas(QLabel):
 # Finish events
 
     def finish_mousePressEvent(self, e):
-        p = QPainter(self.pixmap())
-        p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
-        p.drawEllipse(e.pos(), 10, 10)
-        p.drawEllipse(e.pos(), 13, 13)
-        self.update()
-        self.reset_mode()
+        if not self.finish:
+            p = QPainter(self.pixmap())
+            p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
+            p.drawEllipse(e.pos(), 10, 10)
+            p.drawEllipse(e.pos(), 13, 13)
+            self.finish = True
+            self.update()
+            self.reset_mode()
 
 # Start events
 
     def start_mousePressEvent(self, e):
-        self.origin_pos = e.pos()
-        p = QPainter(self.pixmap())
-        p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
-        polygon = QPolygonF()
-        polygon.append(QPointF(e.x(), e.y() - 30/3*math.sqrt(3)))
-        polygon.append(QPointF(e.x() - 15, e.y() + 30/6*math.sqrt(3)))
-        polygon.append(QPointF(e.x() + 15, e.y() + 30/6*math.sqrt(3)))
-        p.drawPolygon(polygon)
-        # p.drawPolygon([QPointF(e.x(), e.y() + 10/3*math.sqrt(3)),
-        #                QPointF(e.x()-5, e.y() - 5/3*math.sqrt(3)),
-        #                QPointF(e.x()+5, e.y()-5/3*math.sqrt(3))])
-        self.update()
-        self.reset_mode()
+        if not self.start:
+            p = QPainter(self.pixmap())
+            p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
+            polygon = QPolygonF()
+            polygon.append(QPointF(e.x(), e.y() - 30/3*math.sqrt(3)))
+            polygon.append(QPointF(e.x() - 15, e.y() + 30/6*math.sqrt(3)))
+            polygon.append(QPointF(e.x() + 15, e.y() + 30/6*math.sqrt(3)))
+            p.drawPolygon(polygon)
+            # p.drawPolygon([QPointF(e.x(), e.y() + 10/3*math.sqrt(3)),
+            #                QPointF(e.x()-5, e.y() - 5/3*math.sqrt(3)),
+            #                QPointF(e.x()+5, e.y()-5/3*math.sqrt(3))])
+            self.start = True
+            self.update()
+            self.reset_mode()
 
 class MainWindow(QMainWindow, Ui_MainWindow):
 
