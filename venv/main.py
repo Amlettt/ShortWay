@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 
 from shortway import Ui_MainWindow
 
-import os
+import os, math
 
 MODES = [
     'start', 'finish', 'point', 'line'
@@ -16,7 +16,7 @@ PREVIEW_PEN = QPen(QColor(0xff, 0xff, 0xff), 1, Qt.SolidLine)
 
 class Canvas(QLabel):
 
-    primary_color = QColor(Qt.black)
+    primary_color = QColor(Qt.red)
     active_color = None
     preview_pen = None
 
@@ -27,14 +27,14 @@ class Canvas(QLabel):
     # Store configuration settings, including pen width, fonts etc.
     config = {
         # Drawing options.
-        'size': 1,
+        'size': 1,  # толщина линии
         'fill': True,
-        # Font options.
-        'font': QFont('Times'),
-        'fontsize': 12,
-        'bold': False,
-        'italic': False,
-        'underline': False,
+        # # Font options.
+        # 'font': QFont('Times'),
+        # 'fontsize': 12,
+        # 'bold': False,
+        # 'italic': False,
+        # 'underline': False,
     }
 
     def initialize(self):
@@ -175,20 +175,38 @@ class Canvas(QLabel):
 # Ellipse events
 
     def point_mousePressEvent(self, e):
-        self.active_shape_fn = 'drawEllipse'
-        self.active_shape_args = ()
-        self.preview_pen = PREVIEW_PEN
-        self.generic_shape_mousePressEvent(e)
+        p = QPainter(self.pixmap())
+        p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
+        p.drawEllipse(e.pos(), 10, 10)
+        self.update()
+        self.reset_mode()
 
-    def point_timerEvent(self, final=False):
-        self.generic_shape_timerEvent(final)
+# Finish events
 
-    def point_mouseMoveEvent(self, e):
-        self.generic_shape_mouseMoveEvent(e)
+    def finish_mousePressEvent(self, e):
+        p = QPainter(self.pixmap())
+        p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
+        p.drawEllipse(e.pos(), 10, 10)
+        p.drawEllipse(e.pos(), 13, 13)
+        self.update()
+        self.reset_mode()
 
-    def point_mouseReleaseEvent(self, e):
-        self.generic_shape_mouseReleaseEvent(e)
+# Start events
 
+    def start_mousePressEvent(self, e):
+        self.origin_pos = e.pos()
+        p = QPainter(self.pixmap())
+        p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
+        polygon = QPolygonF()
+        polygon.append(QPointF(e.x(), e.y() - 30/3*math.sqrt(3)))
+        polygon.append(QPointF(e.x() - 15, e.y() + 30/6*math.sqrt(3)))
+        polygon.append(QPointF(e.x() + 15, e.y() + 30/6*math.sqrt(3)))
+        p.drawPolygon(polygon)
+        # p.drawPolygon([QPointF(e.x(), e.y() + 10/3*math.sqrt(3)),
+        #                QPointF(e.x()-5, e.y() - 5/3*math.sqrt(3)),
+        #                QPointF(e.x()+5, e.y()-5/3*math.sqrt(3))])
+        self.update()
+        self.reset_mode()
 
 class MainWindow(QMainWindow, Ui_MainWindow):
 
