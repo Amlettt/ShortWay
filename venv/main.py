@@ -21,8 +21,8 @@ class Canvas(QLabel):
     preview_pen = None
 
     timer_event = None
-    start = False
-    finish = False
+    start = None
+    finish = None
     
     mode = 'rectangle'
 
@@ -51,6 +51,9 @@ class Canvas(QLabel):
 
         # Clear the canvas.
         self.pixmap().fill(self.background_color)
+        # обновить прорисовку для старта и финиша
+        self.start = False
+        self.finish = False
 
     def set_config(self, key, value):
         self.config[key] = value
@@ -177,23 +180,26 @@ class Canvas(QLabel):
 # Ellipse events
 
     def point_mousePressEvent(self, e):
-        p = QPainter(self.pixmap())
-        p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
-        p.drawEllipse(e.pos(), 10, 10)
-        self.update()
-        self.reset_mode()
+        if e.button() == Qt.LeftButton:
+            p = QPainter(self.pixmap())
+            p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
+            p.drawEllipse(e.pos(), 10, 10)
+            self.update()
+            self.reset_mode()
 
 # Finish events
 
     def finish_mousePressEvent(self, e):
+        p = QPainter(self.pixmap())
+        p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
         if not self.finish:
-            p = QPainter(self.pixmap())
-            p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
             p.drawEllipse(e.pos(), 10, 10)
             p.drawEllipse(e.pos(), 13, 13)
             self.finish = True
             self.update()
             self.reset_mode()
+        else:
+           pass
 
 # Start events
 
