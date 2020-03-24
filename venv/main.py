@@ -122,24 +122,12 @@ class Canvas(QLabel):
 
         if e.button() == Qt.LeftButton:
             self.active_color = self.primary_color
-        else:
-            self.active_color = self.secondary_color
+        # else:
+        #     self.active_color = self.secondary_color
 
     def generic_mouseReleaseEvent(self, e):
         self.last_pos = None
 
-# Generic events (shared by brush-like tools)
-
-    def generic_mousePressEvent(self, e):
-        self.last_pos = e.pos()
-
-        if e.button() == Qt.LeftButton:
-            self.active_color = self.primary_color
-        else:
-            self.active_color = self.secondary_color
-
-    def generic_mouseReleaseEvent(self, e):
-        self.last_pos = None
 
     # Generic shape events: Rectangle, Ellipse, Rounded-rect
 
@@ -313,22 +301,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if path:
             pixmap = self.canvas.pixmap()
             pixmap.save(path, "PNG" )
-
-    def invert(self):
-        img = QImage(self.canvas.pixmap())
-        img.invertPixels()
-        pixmap = QPixmap()
-        pixmap.convertFromImage(img)
-        self.canvas.setPixmap(pixmap)
-
-    def flip_horizontal(self):
-        pixmap = self.canvas.pixmap()
-        self.canvas.setPixmap(pixmap.transformed(QTransform().scale(-1, 1)))
-
-    def flip_vertical(self):
-        pixmap = self.canvas.pixmap()
-        self.canvas.setPixmap(pixmap.transformed(QTransform().scale(1, -1)))
-
 
 
 if __name__ == '__main__':
