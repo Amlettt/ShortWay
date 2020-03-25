@@ -2,7 +2,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
-from shortway import Ui_MainWindow
+from shortway2 import Ui_MainWindow
 
 import os, math
 
@@ -59,11 +59,7 @@ class Canvas(QLabel):
         self.config[key] = value
 
     def set_mode(self, mode):
-        # Clean up active timer animations.
-        self.timer_cleanup()
-        # Reset mode-specific vars (all)
-        self.active_shape_fn = None
-        self.active_shape_args = ()
+
 
         self.origin_pos = None
 
@@ -86,17 +82,6 @@ class Canvas(QLabel):
     def reset_mode(self):
         self.set_mode(self.mode)
 
-    def on_timer(self):
-        if self.timer_event:
-            self.timer_event()
-
-    def timer_cleanup(self):
-        if self.timer_event:
-            # Stop the timer, then trigger cleanup.
-            timer_event = self.timer_event
-            self.timer_event = None
-            timer_event(final=True)
-
     # Mouse events.
 
     def mousePressEvent(self, e):
@@ -118,62 +103,6 @@ class Canvas(QLabel):
         fn = getattr(self, "%s_mouseDoubleClickEvent" % self.mode, None)
         if fn:
             return fn(e)
-
-    # Generic events (shared by brush-like tools)
-
-    def generic_mousePressEvent(self, e):
-        self.last_pos = e.pos()
-
-        if e.button() == Qt.LeftButton:
-            self.active_color = self.primary_color
-        # else:
-        #     self.active_color = self.secondary_color
-
-    def generic_mouseReleaseEvent(self, e):
-        self.last_pos = None
-
-    # Generic shape events: Rectangle, Ellipse, Rounded-rect
-
-    def generic_shape_mousePressEvent(self, e):
-        self.origin_pos = e.pos()
-        self.current_pos = e.pos()
-        self.timer_event = self.generic_shape_timerEvent
-
-    def generic_shape_timerEvent(self, final=False):
-        p = QPainter(self.pixmap())
-        p.setCompositionMode(QPainter.RasterOp_SourceXorDestination)
-        pen = self.preview_pen
-        pen.setDashOffset(self.dash_offset)
-        p.setPen(pen)
-        if self.last_pos:
-            getattr(p, self.active_shape_fn)(QRect(self.origin_pos, self.last_pos), *self.active_shape_args)
-
-        if not final:
-            self.dash_offset -= 1
-            pen.setDashOffset(self.dash_offset)
-            p.setPen(pen)
-            getattr(p, self.active_shape_fn)(QRect(self.origin_pos, self.current_pos), *self.active_shape_args)
-
-        self.update()
-        self.last_pos = self.current_pos
-
-    def generic_shape_mouseMoveEvent(self, e):
-        self.current_pos = e.pos()
-
-    def generic_shape_mouseReleaseEvent(self, e):
-        if self.last_pos:
-            # Clear up indicator.
-            self.timer_cleanup()
-
-            p = QPainter(self.pixmap())
-            p.setPen(QPen(self.primary_color, self.config['size'], Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
-
-            # if self.config['fill']:
-            #     p.setBrush(QBrush(self.secondary_color))
-            getattr(p, self.active_shape_fn)(QRect(self.origin_pos, e.pos()), *self.active_shape_args)
-            self.update()
-
-        self.reset_mode()
 
     # Ellipse events
 
@@ -242,38 +171,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             btn.pressed.connect(lambda mode=mode: self.canvas.set_mode(mode))
             mode_group.addButton(btn)
 
-        # Setup the color selection buttons.
-        # self.primaryButton.pressed.connect(lambda: self.choose_color(self.set_primary_color))
-        # self.secondaryButton.pressed.connect(lambda: self.choose_color(self.set_secondary_color))
-
-        # Initialize button colours.
-        # for n, hex in enumerate(COLORS, 1):
-        #     btn = getattr(self, 'colorButton_%d' % n)
-        #     btn.setStyleSheet('QPushButton { background-color: %s; }' % hex)
-        #     btn.hex = hex  # For use in the event below
-        #
-        #     def patch_mousePressEvent(self_, e):
-        #         if e.button() == Qt.LeftButton:
-        #             self.set_primary_color(self_.hex)
-        #
-        #         elif e.button() == Qt.RightButton:
-        #             self.set_secondary_color(self_.hex)
-        #
-        #     btn.mousePressEvent = types.MethodType(patch_mousePressEvent, btn)
-
-        # Initialize animation timer.
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.canvas.on_timer)
-        self.timer.setInterval(100)
-        self.timer.start()
-
-        # Setup to agree with Canvas.
-        # self.set_primary_color('#000000')
-        # self.set_secondary_color('#ffffff')
-
-        # Signals for canvas-initiated color changes (dropper).
-        # self.canvas.primary_color_updated.connect(self.set_primary_color)
-        # self.canvas.secondary_color_updated.connect(self.set_secondary_color)
 
         # Menu options
         self.actionNew.triggered.connect(self.open_file)
