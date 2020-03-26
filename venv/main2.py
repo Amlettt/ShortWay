@@ -155,6 +155,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         felt = QBrush(QColor(Qt.white))
         self.scene.setBackgroundBrush(felt)
+        # view.setDragMode(1)
         view.setScene(self.scene)
         # Replace canvas placeholder from QtDesigner.
         # self.canvas.initialize()
@@ -175,14 +176,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
         # Menu options
-        self.actionNew.triggered.connect(self.open_file)
-        self.actionOpen.triggered.connect(self.open_file)
-        # self.actionSave.triggered.connect(self.save_file)
+        self.actionNew.triggered.connect(self.new_file)
+        self.actionOpen.triggered.connect(self.new_file)
+        self.actionSave.triggered.connect(self.save_file)
 
 
         self.show()
 
-    def open_file(self):
+    def new_file(self):
         """
         Open image file for editing, scaling the smaller dimension and cropping the remainder.
         :return:
@@ -191,6 +192,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                               "PNG image files (*.png); JPEG image files (*jpg); All files (*.*)")
 
         if path:
+            newImage = QGraphicsPixmapItem()
             pixmap = QPixmap()
             pixmap.load(path)
 
@@ -199,7 +201,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             ih = pixmap.height()
 
             # Get the size of the space we're filling.
-            cw, ch = CANVAS_DIMENSIONS
+            cw, ch = WINDOW_SIZE
 
             if iw / cw < ih / ch:  # The height is relatively bigger than the width.
                 pixmap = pixmap.scaledToWidth(cw)
@@ -215,7 +217,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     QRect(QPoint(woff, 0), QPoint(pixmap.width() - woff, ch))
                 )
 
-            self.canvas.setPixmap(pixmap)
+            newImage.setPixmap(pixmap)
+            newImage.setFlag(QGraphicsItem.ItemIsMovable, True)  # позволяет двигать изображение
+            self.scene.addItem(newImage)
 
     def save_file(self):
         """
@@ -225,8 +229,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "PNG Image file (*.png)")
 
         if path:
-            pixmap = self.canvas.pixmap()
-            pixmap.save(path, "PNG")
+            # Get region of scene to capture from somewhere.
+            rect_f = self.scene.sceneRect()
+
+            # Create a QImage to render to and fix up a QPainter for it.
+            img = QImage(QSize(*WINDOW_SIZE), QImage.Format_RGB888)
+            p = QPainter(img)
+            self.scene.render(p, target=QRectF(img.rect()), source=rect_f)
+            p.end()  # конец рисовки я так понимаю
+            img.save(path, "PNG")
 
 
 if __name__ == '__main__':
