@@ -10,12 +10,15 @@ MODES = [
     'start', 'finish', 'point', 'line'
 ]
 
-CANVAS_DIMENSIONS = 800, 500
+WINDOW_SIZE = 800, 500
 
 PREVIEW_PEN = QPen(QColor(0xff, 0xff, 0xff), 1, Qt.SolidLine)
 
 
-class Canvas(QLabel):
+class SceneView(QGraphicsView):
+
+    # sceneView = QGraphicsScene()
+    # self.setScene(sceneView)
     primary_color = QColor(Qt.red)
     active_color = None
     preview_pen = None
@@ -31,26 +34,21 @@ class Canvas(QLabel):
         # Drawing options.
         'size': 1,  # толщина линии
         'fill': True,
-        # # Font options.
-        # 'font': QFont('Times'),
-        # 'fontsize': 12,
-        # 'bold': False,
-        # 'italic': False,
-        # 'underline': False,
     }
 
     def initialize(self):
         self.background_color = QColor(Qt.white)
-        # self.eraser_color = QColor(self.secondary_color) if self.secondary_color else QColor(Qt.white)
-        # self.eraser_color.setAlpha(100)
         self.reset()
 
     def reset(self):
-        # Create the pixmap for display.
-        self.setPixmap(QPixmap(*CANVAS_DIMENSIONS))
-
-        # Clear the canvas.
-        self.pixmap().fill(self.background_color)
+        # # Create the pixmap for display.
+        # self.setPixmap(QPixmap(*CANVAS_DIMENSIONS))
+        #
+        # # Clear the canvas.
+        # self.pixmap().fill(self.background_color)
+        self.clear()
+        self.setBackgroundBrush(QBrush(QColor(237, 237, 237)))
+        # self.drawBackground(QPainter.QBrush(QColor(255,170,255), Qt.SolidPattern))
         # обновить прорисовку для старта и финиша
         self.start = False
         self.finish = False
@@ -59,8 +57,6 @@ class Canvas(QLabel):
         self.config[key] = value
 
     def set_mode(self, mode):
-
-
         self.origin_pos = None
 
         self.current_pos = None
@@ -152,15 +148,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.setupUi(self)
+        view = QGraphicsView()
+        self.verticalLayout.addWidget(view)
+        self.scene = QGraphicsScene()
+        self.scene.setSceneRect(QRectF(0, 0, *WINDOW_SIZE))
 
+        felt = QBrush(QColor(Qt.white))
+        self.scene.setBackgroundBrush(felt)
+        view.setScene(self.scene)
         # Replace canvas placeholder from QtDesigner.
-        self.canvas = Canvas()
-        self.canvas.initialize()
+        # self.canvas.initialize()
         # We need to enable mouse tracking to follow the mouse without the button pressed.
-        self.canvas.setMouseTracking(True)
+        # self.canvas.setMouseTracking(True)
         # Enable focus to capture key inputs.
-        self.canvas.setFocusPolicy(Qt.StrongFocus)
-        self.verticalLayout.addWidget(self.canvas)
+        # self.canvas.setFocusPolicy(Qt.StrongFocus)
+        # self.verticalLayout.addWidget(self.graphicsView)
 
         # Setup the mode buttons
         mode_group = QButtonGroup(self)
@@ -168,15 +170,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         for mode in MODES:
             btn = getattr(self, '%sButton' % mode)
-            btn.pressed.connect(lambda mode=mode: self.canvas.set_mode(mode))
+            btn.pressed.connect(lambda mode=mode: self.graphicsView.set_mode(mode))
             mode_group.addButton(btn)
 
 
         # Menu options
         self.actionNew.triggered.connect(self.open_file)
         self.actionOpen.triggered.connect(self.open_file)
-        self.actionSave.triggered.connect(self.save_file)
-        self.actionClear.triggered.connect(self.canvas.reset)
+        # self.actionSave.triggered.connect(self.save_file)
+
 
         self.show()
 
