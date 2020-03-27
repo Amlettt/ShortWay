@@ -13,7 +13,7 @@ MODES = [
 WINDOW_SIZE = 800, 500
 
 PREVIEW_PEN = QPen(QColor(0xff, 0xff, 0xff), 1, Qt.SolidLine)
-
+primary_color = QColor(Qt.red)
 
 class SceneView(QGraphicsView):
 
@@ -78,6 +78,71 @@ class SceneView(QGraphicsView):
     def reset_mode(self):
         self.set_mode(self.mode)
 
+
+
+
+class MainWindow(QMainWindow, Ui_MainWindow):
+
+    mode = ''
+    start = None
+    finish = None
+    primary_color = QColor(Qt.red)
+
+    def __init__(self, *args, **kwargs):
+        super(MainWindow, self).__init__(*args, **kwargs)
+        self.setupUi(self)
+
+
+
+        view = QGraphicsView()
+        self.verticalLayout.addWidget(view)
+        self.scene = QGraphicsScene()
+        self.scene.setSceneRect(QRectF(0, 0, *WINDOW_SIZE))
+        
+        felt = QBrush(QColor(Qt.white))
+        self.scene.setBackgroundBrush(felt)
+        # view.setDragMode(1)
+        view.setScene(self.scene)
+
+        # Setup the mode buttons
+        mode_group = QButtonGroup(self)
+        mode_group.setExclusive(True)
+
+        for mode in MODES:
+            btn = getattr(self, '%sButton' % mode)
+            btn.pressed.connect(lambda mode=mode: self.set_mode(mode))
+            mode_group.addButton(btn)
+
+
+        # Menu options
+        self.actionNew.triggered.connect(self.new_file)
+        self.actionOpen.triggered.connect(self.new_file)
+        self.actionSave.triggered.connect(self.save_file)
+
+        self.show()
+
+    def set_mode(self, mode):
+        self.origin_pos = None
+
+        self.current_pos = None
+        self.last_pos = None
+
+        self.history_pos = None
+        self.last_history = []
+
+        self.current_text = ""
+        self.last_text = ""
+
+        self.last_config = {}
+
+        self.dash_offset = 0
+        self.locked = False
+        # Apply the mode
+        self.mode = mode
+
+    def reset_mode(self):
+        self.set_mode(self.mode)
+
     # Mouse events.
 
     def mousePressEvent(self, e):
@@ -104,84 +169,35 @@ class SceneView(QGraphicsView):
 
     def point_mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            p = QPainter(self.pixmap())
-            p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
-            p.drawEllipse(e.pos(), 10, 10)
-            self.update()
-            self.reset_mode()
+            p = QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin)
+            brush = QBrush(Qt.black)
+            self.scene.addEllipse(e.x(), e.y(), 20, 20, p)
 
     # Finish events
 
     def finish_mousePressEvent(self, e):
-        p = QPainter(self.pixmap())
-        p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
+        p = QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin)
         if not self.finish:
-            p.drawEllipse(e.pos(), 10, 10)
-            p.drawEllipse(e.pos(), 13, 13)
+            self.scene.addEllipse(e.x(), e.y(), 20, 20, p)
+            self.scene.addEllipse(e.x(), e.y(), 26, 26, p)
             self.finish = True
-            self.update()
-            self.reset_mode()
-        else:
-            pass
+
 
     # Start events
 
     def start_mousePressEvent(self, e):
         if not self.start:
-            p = QPainter(self.pixmap())
-            p.setPen(QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))
+            p = QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin)
             polygon = QPolygonF()
             polygon.append(QPointF(e.x(), e.y() - 30 / 3 * math.sqrt(3)))
             polygon.append(QPointF(e.x() - 15, e.y() + 30 / 6 * math.sqrt(3)))
             polygon.append(QPointF(e.x() + 15, e.y() + 30 / 6 * math.sqrt(3)))
-            p.drawPolygon(polygon)
+            # p.drawPolygon(polygon)
+            self.scene.addPolygon(polygon, p)
             # p.drawPolygon([QPointF(e.x(), e.y() + 10/3*math.sqrt(3)),
             #                QPointF(e.x()-5, e.y() - 5/3*math.sqrt(3)),
             #                QPointF(e.x()+5, e.y()-5/3*math.sqrt(3))])
             self.start = True
-            self.update()
-            self.reset_mode()
-
-
-class MainWindow(QMainWindow, Ui_MainWindow):
-
-    def __init__(self, *args, **kwargs):
-        super(MainWindow, self).__init__(*args, **kwargs)
-        self.setupUi(self)
-        view = QGraphicsView()
-        self.verticalLayout.addWidget(view)
-        self.scene = QGraphicsScene()
-        self.scene.setSceneRect(QRectF(0, 0, *WINDOW_SIZE))
-
-        felt = QBrush(QColor(Qt.white))
-        self.scene.setBackgroundBrush(felt)
-        # view.setDragMode(1)
-        view.setScene(self.scene)
-        # Replace canvas placeholder from QtDesigner.
-        # self.canvas.initialize()
-        # We need to enable mouse tracking to follow the mouse without the button pressed.
-        # self.canvas.setMouseTracking(True)
-        # Enable focus to capture key inputs.
-        # self.canvas.setFocusPolicy(Qt.StrongFocus)
-        # self.verticalLayout.addWidget(self.graphicsView)
-
-        # Setup the mode buttons
-        mode_group = QButtonGroup(self)
-        mode_group.setExclusive(True)
-
-        for mode in MODES:
-            btn = getattr(self, '%sButton' % mode)
-            btn.pressed.connect(lambda mode=mode: self.graphicsView.set_mode(mode))
-            mode_group.addButton(btn)
-
-
-        # Menu options
-        self.actionNew.triggered.connect(self.new_file)
-        self.actionOpen.triggered.connect(self.new_file)
-        self.actionSave.triggered.connect(self.save_file)
-
-
-        self.show()
 
     def new_file(self):
         """
@@ -218,7 +234,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 )
 
             newImage.setPixmap(pixmap)
-            newImage.setFlag(QGraphicsItem.ItemIsMovable, True)  # позволяет двигать изображение
+            # newImage.setFlag(QGraphicsItem.ItemIsMovable, True)  # позволяет двигать изображение
             self.scene.addItem(newImage)
 
     def save_file(self):
