@@ -10,7 +10,7 @@ MODES = [
     'start', 'finish', 'point', 'line'
 ]
 
-WINDOW_SIZE = 800, 500
+WINDOW_SIZE = 790, 500
 
 PREVIEW_PEN = QPen(QColor(0xff, 0xff, 0xff), 1, Qt.SolidLine)
 primary_color = QColor(Qt.red)
@@ -94,32 +94,41 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
 
-        view = QGraphicsView()
-        self.verticalLayout.addWidget(view)
+        # view = QGraphicsView()
+        # self.verticalLayout.addWidget(view)
         self.scene = QGraphicsScene()
-        self.scene.setSceneRect(QRectF(0, 0, *WINDOW_SIZE))
+        self.scene.setSceneRect(QRectF(0, 62, *WINDOW_SIZE))
         
         felt = QBrush(QColor(Qt.white))
         self.scene.setBackgroundBrush(felt)
         # view.setDragMode(1)
-        view.setScene(self.scene)
+        # view.setScene(self.scene)
+        self.graphicsView.setAlignment(Qt.AlignLeft | Qt.AlignTop)  # Задаем выравнивание сцены относительно верхнего левого угла
+        self.graphicsView.setScene(self.scene)
 
         # Setup the mode buttons
-        mode_group = QButtonGroup(self)
-        mode_group.setExclusive(True)
+        self.mode_group = QButtonGroup(self)
+        self.mode_group.setExclusive(True)
 
         for mode in MODES:
             btn = getattr(self, '%sButton' % mode)
             btn.pressed.connect(lambda mode=mode: self.set_mode(mode))
-            mode_group.addButton(btn)
+            self.mode_group.addButton(btn)
 
 
         # Menu options
         self.actionNew.triggered.connect(self.new_file)
         self.actionOpen.triggered.connect(self.new_file)
         self.actionSave.triggered.connect(self.save_file)
+        self.actionClear.triggered.connect(self.reset)
 
         self.show()
+
+    def reset(self):
+        self.scene.clear()
+        self.start = False
+        self.finish = False
+        self.mode = ''
 
     def set_mode(self, mode):
         self.origin_pos = None
@@ -169,19 +178,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def point_mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            p = QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin)
-            brush = QBrush(Qt.black)
-            self.scene.addEllipse(e.x(), e.y(), 20, 20, p)
+            p = QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin)  # настройки карандаша
+            # brush = QBrush(Qt.black)
+            self.scene.addEllipse(e.x()-10, e.y()-10, 20, 20, p)
+            print(self.scene.sceneRect())
 
     # Finish events
 
     def finish_mousePressEvent(self, e):
         p = QPen(self.primary_color, 2, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin)
         if not self.finish:
-            self.scene.addEllipse(e.x(), e.y(), 20, 20, p)
-            self.scene.addEllipse(e.x(), e.y(), 26, 26, p)
+            self.scene.addEllipse(e.x()-10, e.y()-10, 20, 20, p)
+            self.scene.addEllipse(e.x()-13, e.y()-13, 26, 26, p)
             self.finish = True
-
 
     # Start events
 
@@ -192,11 +201,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             polygon.append(QPointF(e.x(), e.y() - 30 / 3 * math.sqrt(3)))
             polygon.append(QPointF(e.x() - 15, e.y() + 30 / 6 * math.sqrt(3)))
             polygon.append(QPointF(e.x() + 15, e.y() + 30 / 6 * math.sqrt(3)))
-            # p.drawPolygon(polygon)
             self.scene.addPolygon(polygon, p)
-            # p.drawPolygon([QPointF(e.x(), e.y() + 10/3*math.sqrt(3)),
-            #                QPointF(e.x()-5, e.y() - 5/3*math.sqrt(3)),
-            #                QPointF(e.x()+5, e.y()-5/3*math.sqrt(3))])
             self.start = True
 
     def new_file(self):
