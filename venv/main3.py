@@ -113,57 +113,58 @@ class Scene(QGraphicsScene):
         print(self.length_line)
 
     # Line events
-    def line_mousePressEvent(self, e):
-        self.last_pos = e.scenePos()
-
-    def line_mouseReleaseEvent(self, e):
-        if self.last_pos:
-            p = QGraphicsLineItem(self.last_pos.x(), self.last_pos.y(),
-                                  e.scenePos().x(), e.scenePos().y())
-            p.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
-            self.addItem(p)
-            self.update()
-
     # def line_mousePressEvent(self, e):
-    #     self.origin_pos = e.scenePos()
-    #     self.current_pos = e.scenePos()
-    #     self.timer_event = self.line_timerEvent
-    #
-    # def line_timerEvent(self, final=False):
-    #     # p = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
-    #     #                       self.last_pos().x(), self.last_pos().y())
-    #     # p2 = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
-    #     #                       self.current_pos().x(), self.current_poss().y())
-    #     # p.setCompositionMode(QPainter.RasterOp_SourceXorDestination)
-    #     # p.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
-    #     if self.last_pos:
-    #         p = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
-    #                               self.last_pos().x(), self.last_pos().y())
-    #         p.setPen(QPen(self.primary_color, self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
-    #         self.addItem(p)
-    #
-    #     if not final:
-    #         p2 = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
-    #                                self.current_pos().x(), self.current_pos().y())
-    #         p2.setPen(QPen(self.primary_color, self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
-    #         self.addItem(p2)
-    #
-    #     self.update()
-    #     self.last_pos = self.current_pos
-    #
-    # def line_mouseMoveEvent(self, e):
-    #     self.current_pos = e.scenePos()
+    #     self.last_pos = e.scenePos()
     #
     # def line_mouseReleaseEvent(self, e):
     #     if self.last_pos:
-    #         # Clear up indicator.
-    #         self.timer_cleanup()
     #         p = QGraphicsLineItem(self.last_pos.x(), self.last_pos.y(),
     #                               e.scenePos().x(), e.scenePos().y())
     #         p.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
     #         self.addItem(p)
     #         self.update()
-    #     self.reset_mode()
+
+    def line_mousePressEvent(self, e):
+        self.origin_pos = e.scenePos()
+        self.current_pos = e.scenePos()
+        self.timer_event = self.line_timerEvent
+
+    def line_timerEvent(self, final=False):
+        # p = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
+        #                       self.last_pos.x(), self.last_pos.y())
+        # p2 = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
+        #                       self.current_pos.x(), self.current_poss.y())
+        # p.setCompositionMode(QPainter.RasterOp_SourceXorDestination)
+        # p.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
+        if self.last_pos:
+            p = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
+                                  self.last_pos.x(), self.last_pos.y())
+            p.setPen(QPen(self.primary_color, self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
+            self.addItem(p)
+
+        if not final:
+            p2 = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
+                                   self.current_pos.x(),
+                                   self.current_pos.y())
+            p2.setPen(QPen(self.primary_color, self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
+            self.addItem(p2)
+
+        self.update()
+        self.last_pos = self.current_pos
+
+    def line_mouseMoveEvent(self, e):
+        self.current_pos = e.scenePos()
+
+    def line_mouseReleaseEvent(self, e):
+        if self.last_pos:
+            # Clear up indicator.
+            self.timer_cleanup()
+            p = QGraphicsLineItem(self.last_pos.x(), self.last_pos.y(),
+                                  e.scenePos().x(), e.scenePos().y())
+            p.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+            self.addItem(p)
+            self.update()
+        self.reset_mode()
 
     # Ellipse events
 
