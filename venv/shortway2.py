@@ -39,7 +39,7 @@ class Ui_MainWindow(object):
         self.horizontalSlider = QtWidgets.QSlider(self.groupBox)
         self.horizontalSlider.setGeometry(QtCore.QRect(620, 10, 160, 16))
         self.horizontalSlider.setMinimum(10)
-        self.horizontalSlider.setMaximum(100)
+        self.horizontalSlider.setMaximum(30)
         self.horizontalSlider.setOrientation(QtCore.Qt.Horizontal)
         self.horizontalSlider.setObjectName("horizontalSlider")
         self.comboBox = QtWidgets.QComboBox(self.groupBox)

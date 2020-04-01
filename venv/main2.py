@@ -99,7 +99,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scene.setBackgroundBrush(felt)  # установка фона
         self.graphicsView.setAlignment(Qt.AlignLeft | Qt.AlignTop)  # Задаем выравнивание сцены относительно верхнего левого угла
         self.graphicsView.setScene(self.scene)  # инициализация сцены
-        self.graphicsView.translate(0,62)
+        # self.graphicsView.translate(0,62)
 
         self.image = QGraphicsItemGroup()
         self.object = QGraphicsItemGroup()
@@ -201,8 +201,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def changeSize(self, value):
         print(value)
-        self.value = value
-
+        self.value = value  
+        self.scene.update()
+        self.graphicsView.update()
 
     def new_file(self):
         """
