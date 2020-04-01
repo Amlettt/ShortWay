@@ -24,6 +24,7 @@ class Scene(QGraphicsScene):
     value = 10
     image = QGraphicsItemGroup()
     object = QGraphicsItemGroup()
+    
 
     def initialize(self):
         self.setSceneRect(QRectF(0, 62, *WINDOW_SIZE))  # координаты сцены относительно окна программы
@@ -38,11 +39,9 @@ class Scene(QGraphicsScene):
         self.mode = ''
         self.value = 10
 
-
-    def set_config(self, key, value):
-        self.config[key] = value
-
     def set_mode(self, mode):
+        self.last_pos = None
+
         self.mode = mode
 
     def reset_mode(self):
@@ -67,6 +66,31 @@ class Scene(QGraphicsScene):
         fn = getattr(self, "%s_mouseDoubleClickEvent" % self.mode, None)
         if fn:
             return fn(e)
+
+
+    def generic_mousePressEvent(self, e):
+        self.last_pos = e.scenePos()
+
+    def generic_mouseReleaseEvent(self, e):
+        self.last_pos = None
+
+    # Pen events
+
+    def line_mousePressEvent(self, e):
+        self.generic_mousePressEvent(e)
+
+    def line_mouseMoveEvent(self, e):
+        if self.last_pos:
+            p = QGraphicsLineItem(self.last_pos.x(), self.last_pos.y(),
+                                  e.scenePos().x(),e.scenePos().y())
+            p.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
+            self.addItem(p)
+            self.last_pos = e.scenePos()
+            self.update()
+
+    def line_mouseReleaseEvent(self, e):
+        self.generic_mouseReleaseEvent(e)
+
 
     # Ellipse events
 
@@ -101,6 +125,7 @@ class Scene(QGraphicsScene):
             polygon.append(QPointF(e.scenePos().x() + self.value*3/2, e.scenePos().y() + self.value*3 / 6 * math.sqrt(3)))
             self.addPolygon(polygon, p)
             self.start = True
+
 
     def changeSize(self, value):
         print(value)
