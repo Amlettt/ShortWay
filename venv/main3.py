@@ -7,7 +7,7 @@ from shortway2 import Ui_MainWindow
 import os, math
 
 MODES = [
-    'start', 'finish', 'point', 'line'
+    'start', 'finish', 'point', 'line', 'pen'
 ]
 
 WINDOW_SIZE = 798, 500
@@ -24,7 +24,8 @@ class Scene(QGraphicsScene):
     value = 10
     image = QGraphicsItemGroup()
     object = QGraphicsItemGroup()
-    
+    length_line = 0
+    timer_event = None
 
     def initialize(self):
         self.setSceneRect(QRectF(0, 62, *WINDOW_SIZE))  # координаты сцены относительно окна программы
@@ -38,14 +39,31 @@ class Scene(QGraphicsScene):
         self.finish = False
         self.mode = ''
         self.value = 10
+        self.length_line = 0
 
     def set_mode(self, mode):
+        self.timer_cleanup()
+
         self.last_pos = None
+        self.origin_pos = None
+        self.current_pos = None
 
         self.mode = mode
 
     def reset_mode(self):
         self.set_mode(self.mode)
+
+    def on_timer(self):
+        if self.timer_event:
+            self.timer_event()
+
+    def timer_cleanup(self):
+        if self.timer_event:
+            # Stop the timer, then trigger cleanup.
+            timer_event = self.timer_event
+            self.timer_event = None
+            timer_event(final=True)
+
 
     def mousePressEvent(self, e):
         fn = getattr(self, "%s_mousePressEvent" % self.mode, None)
@@ -76,21 +94,76 @@ class Scene(QGraphicsScene):
 
     # Pen events
 
-    def line_mousePressEvent(self, e):
+    def pen_mousePressEvent(self, e):
         self.generic_mousePressEvent(e)
 
-    def line_mouseMoveEvent(self, e):
+    def pen_mouseMoveEvent(self, e):
         if self.last_pos:
             p = QGraphicsLineItem(self.last_pos.x(), self.last_pos.y(),
                                   e.scenePos().x(),e.scenePos().y())
             p.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
             self.addItem(p)
+            self.length_line += 1
             self.last_pos = e.scenePos()
-            self.update()
+            print(self.last_pos)
+            # self.update()
+
+    def pen_mouseReleaseEvent(self, e):
+        self.generic_mouseReleaseEvent(e)
+        print(self.length_line)
+
+    # Line events
+    def line_mousePressEvent(self, e):
+        self.last_pos = e.scenePos()
 
     def line_mouseReleaseEvent(self, e):
-        self.generic_mouseReleaseEvent(e)
+        if self.last_pos:
+            p = QGraphicsLineItem(self.last_pos.x(), self.last_pos.y(),
+                                  e.scenePos().x(), e.scenePos().y())
+            p.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+            self.addItem(p)
+            self.update()
 
+    # def line_mousePressEvent(self, e):
+    #     self.origin_pos = e.scenePos()
+    #     self.current_pos = e.scenePos()
+    #     self.timer_event = self.line_timerEvent
+    #
+    # def line_timerEvent(self, final=False):
+    #     # p = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
+    #     #                       self.last_pos().x(), self.last_pos().y())
+    #     # p2 = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
+    #     #                       self.current_pos().x(), self.current_poss().y())
+    #     # p.setCompositionMode(QPainter.RasterOp_SourceXorDestination)
+    #     # p.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
+    #     if self.last_pos:
+    #         p = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
+    #                               self.last_pos().x(), self.last_pos().y())
+    #         p.setPen(QPen(self.primary_color, self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
+    #         self.addItem(p)
+    #
+    #     if not final:
+    #         p2 = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
+    #                                self.current_pos().x(), self.current_pos().y())
+    #         p2.setPen(QPen(self.primary_color, self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
+    #         self.addItem(p2)
+    #
+    #     self.update()
+    #     self.last_pos = self.current_pos
+    #
+    # def line_mouseMoveEvent(self, e):
+    #     self.current_pos = e.scenePos()
+    #
+    # def line_mouseReleaseEvent(self, e):
+    #     if self.last_pos:
+    #         # Clear up indicator.
+    #         self.timer_cleanup()
+    #         p = QGraphicsLineItem(self.last_pos.x(), self.last_pos.y(),
+    #                               e.scenePos().x(), e.scenePos().y())
+    #         p.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    #         self.addItem(p)
+    #         self.update()
+    #     self.reset_mode()
 
     # Ellipse events
 
@@ -165,6 +238,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             btn.pressed.connect(lambda mode=mode: self.scene.set_mode(mode))
             self.mode_group.addButton(btn)
 
+        # Initialize animation timer.
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.scene.on_timer)
+        self.timer.setInterval(100)
+        self.timer.start()
+
 
         # Menu options
         self.actionNew.triggered.connect(self.new_file)
@@ -183,6 +262,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scene.finish = False
         self.scene.mode = ''
         self.scene.value = 10
+        self.scene.length_line = 0
         self.horizontalSlider.setValue(10)
 
 
@@ -201,6 +281,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                               "PNG image files (*.png); JPEG image files (*jpg); All files (*.*)")
 
         if path:
+            self.reset()
             newImage = QGraphicsPixmapItem()
             pixmap = QPixmap()
             pixmap.load(path)
