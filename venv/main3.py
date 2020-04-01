@@ -130,12 +130,6 @@ class Scene(QGraphicsScene):
         self.timer_event = self.line_timerEvent
 
     def line_timerEvent(self, final=False):
-        # p = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
-        #                       self.last_pos.x(), self.last_pos.y())
-        # p2 = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
-        #                       self.current_pos.x(), self.current_poss.y())
-        # p.setCompositionMode(QPainter.RasterOp_SourceXorDestination)
-        # p.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
         if self.last_pos:
             p = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
                                   self.last_pos.x(), self.last_pos.y())
@@ -144,11 +138,11 @@ class Scene(QGraphicsScene):
 
         if not final:
             p2 = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
-                                   self.current_pos.x(),
-                                   self.current_pos.y())
+                                   self.current_pos.x(),self.current_pos.y())
             p2.setPen(QPen(self.primary_color, self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
             self.addItem(p2)
 
+        # self.removeItem(p)
         self.update()
         self.last_pos = self.current_pos
 
@@ -177,6 +171,7 @@ class Scene(QGraphicsScene):
             point.setPen(p)
             # self.object.addToGroup(point)
             self.addItem(point)
+
 
     # Finish events
 
