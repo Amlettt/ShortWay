@@ -7,7 +7,7 @@ from shortway2 import Ui_MainWindow
 import os, math
 
 MODES = [
-    'start', 'finish', 'point', 'line', 'pen'
+    'start', 'finish', 'point', 'line', 'pen', 'zone'
 ]
 
 WINDOW_SIZE = 798, 500
@@ -23,7 +23,12 @@ class Scene(QGraphicsScene):
     primary_color = QColor(Qt.red)
     value = 10
     image = QGraphicsItemGroup()
-    object = QGraphicsItemGroup()
+    objectPoint = []
+    objectStart = []
+    objectFinish = []
+    objectPen = []
+    objectLine = []
+    objectZone = []
     length_line = 0
     timer_event = None
 
@@ -102,6 +107,7 @@ class Scene(QGraphicsScene):
             p = QGraphicsLineItem(self.last_pos.x(), self.last_pos.y(),
                                   e.scenePos().x(),e.scenePos().y())
             p.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin))
+            self.objectPen.append(p)
             self.addItem(p)
             self.length_line += 1
             self.last_pos = e.scenePos()
@@ -164,12 +170,12 @@ class Scene(QGraphicsScene):
 
     def point_mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            p = QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin)  # настройки карандаша
             point = QGraphicsEllipseItem(QRectF(e.scenePos().x()-self.value,
                                                 e.scenePos().y()-self.value,
                                                 self.value*2, self.value*2))
-            point.setPen(p)
-            # self.object.addToGroup(point)
+            point.setPen(QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin))  # настройки карандаша)
+            self.objectPoint.append(point)
+            # self.createItemGroup(point)
             self.addItem(point)
 
 
@@ -178,9 +184,15 @@ class Scene(QGraphicsScene):
     def finish_mousePressEvent(self, e):
         p = QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin)
         if not self.finish and e.button() == Qt.LeftButton:
-            self.addEllipse(e.scenePos().x()-self.value, e.scenePos().y()-self.value, self.value*2, self.value*2, p)
-            self.addEllipse(e.scenePos().x()-(self.value+self.value/3), e.scenePos().y()-(self.value+self.value/3),
-                                  (self.value+self.value/3)*2, (self.value+self.value/3)*2, p)
+            finish_circle = QGraphicsEllipseItem(QRectF(e.scenePos().x()-self.value, e.scenePos().y()-self.value, self.value*2, self.value*2))
+            finish_circle.setPen(p)
+            self.objectFinish.append(finish_circle)
+            self.addItem(finish_circle)
+            finish_circle2 = QGraphicsEllipseItem(QRectF(e.scenePos().x()-(self.value+self.value/3), e.scenePos().y()-(self.value+self.value/3),
+                                  (self.value+self.value/3)*2, (self.value+self.value/3)*2))
+            finish_circle2.setPen(p)
+            self.objectFinish.append(finish_circle2)
+            self.addItem(finish_circle2)
             self.finish = True
 
     # Start events
@@ -189,10 +201,15 @@ class Scene(QGraphicsScene):
         if not self.start and e.button() == Qt.LeftButton:
             p = QPen(self.primary_color, self.value/5, Qt.SolidLine, Qt.SquareCap, Qt.MiterJoin)
             polygon = QPolygonF()
-            polygon.append(QPointF(e.scenePos().x(), e.scenePos().y() - self.value*3 / 3 * math.sqrt(3)))
-            polygon.append(QPointF(e.scenePos().x() - self.value*3/2, e.scenePos().y() + self.value*3 / 6 * math.sqrt(3)))
-            polygon.append(QPointF(e.scenePos().x() + self.value*3/2, e.scenePos().y() + self.value*3 / 6 * math.sqrt(3)))
-            self.addPolygon(polygon, p)
+            polygon.append(QPointF(e.scenePos().x(), e.scenePos().y() - self.value * 3 / 3 * math.sqrt(3)))
+            polygon.append(QPointF(e.scenePos().x() - self.value * 3 / 2, e.scenePos().y() + self.value * 3 / 6 * math.sqrt(3)))
+            polygon.append(QPointF(e.scenePos().x() + self.value * 3 / 2, e.scenePos().y() + self.value * 3 / 6 * math.sqrt(3)))
+            start = QGraphicsPolygonItem()
+            start.setPen(p)
+            start.setPolygon(polygon)
+
+            self.objectStart.append(start)
+            self.addItem(start)
             self.start = True
 
 
@@ -245,7 +262,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionNew.triggered.connect(self.new_file)
         self.actionOpen.triggered.connect(self.new_file)
         self.actionSave.triggered.connect(self.save_file)
-        self.actionClear.triggered.connect(self.reset)
+        self.actionClearAll.triggered.connect(self.reset)
+        self.actionClearStart.triggered.connect(lambda: self.clear('Start'))
+        self.actionClearFinish.triggered.connect(lambda: self.clear('Finish'))
+        self.actionClearPoint.triggered.connect(lambda: self.clear('Point'))
+        self.actionClearLine.triggered.connect(lambda: self.clear('Line'))
+        self.actionClearPen.triggered.connect(lambda: self.clear('Pen'))
+        self.actionClearZone.triggered.connect(lambda: self.clear('Zone'))
 
         # Change size
         self.horizontalSlider.valueChanged.connect(self.changeSize)
@@ -253,14 +276,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.show()
 
     def reset(self):
-        self.scene.clear()
-        self.scene.start = False
-        self.scene.finish = False
-        self.scene.mode = ''
-        self.scene.value = 10
-        self.scene.length_line = 0
+        self.scene.reset()
         self.horizontalSlider.setValue(10)
 
+    def clear(self, mode):
+        fn = getattr(self.scene, 'object%s' % mode)
+        for i in fn:
+            self.scene.removeItem(i)
+        fn.clear()
+        if mode == 'Start':
+            self.scene.start = False
+        if mode == 'Finish':
+            self.scene.finish = False
+        if mode == 'Pen':
+            self.scene.length_line = 0
+        self.scene.mode = ''
 
     def changeSize(self, value):
         print(value)
