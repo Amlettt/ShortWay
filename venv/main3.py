@@ -96,7 +96,7 @@ class Scene(QGraphicsScene):
     # Pen events
 
     def pen_mousePressEvent(self, e):
-        self.generic_mousePressEvent(e)
+        self.last_pos = e.scenePos()
 
     def pen_mouseMoveEvent(self, e):
         if self.last_pos:
@@ -111,7 +111,7 @@ class Scene(QGraphicsScene):
             # self.update()
 
     def pen_mouseReleaseEvent(self, e):
-        self.generic_mouseReleaseEvent(e)
+        self.last_pos = None
         print(self.length_line)
 
     # Line events
