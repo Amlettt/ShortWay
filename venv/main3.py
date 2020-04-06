@@ -156,11 +156,16 @@ class Scene(QGraphicsScene):
     def zone_mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             if self.history_pos:
-                self.history_pos.append(self.last_pos)
-                print(self.line)
-                copyLine = self.line
-                self.objectZone.append(copyLine)
+                p = QGraphicsLineItem(self.history_pos[-1].x(), self.history_pos[-1].y(),
+                                      self.last_pos.x(), self.last_pos.y())
+                p.setPen(self.pen)
+                self.objectZone.append(p)
                 self.addItem(self.objectZone[-1])
+                self.history_pos.append(self.last_pos)
+                # print(self.line)
+                # copyLine = self.line
+                # self.objectZone.append(copyLine)
+                # self.addItem(self.objectZone[-1])
             else:
                 self.origin_pos = e.scenePos()  # my
                 self.history_pos = [e.scenePos()]
@@ -197,7 +202,8 @@ class Scene(QGraphicsScene):
         p = QGraphicsLineItem(self.history_pos[-1].x(), self.history_pos[-1].y(),
                               self.origin_pos.x(), self.origin_pos.y())
         p.setPen(self.pen)
-        self.removeItem(self.line)
+        if self.line:
+            self.removeItem(self.line)
         self.objectZone.append(p)
         self.addItem(p)
         self.update()
