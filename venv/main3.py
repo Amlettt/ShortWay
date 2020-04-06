@@ -14,6 +14,7 @@ WINDOW_SIZE = 798, 500
 
 PREVIEW_PEN = QPen(QColor(0xff, 0xff, 0xff), 1, Qt.SolidLine)
 primary_color = QColor(Qt.red)
+scale = [1, 1, 1, 2.75, 1, 1, 1, 1, 1]
 
 class Scene(QGraphicsScene):
 
@@ -38,6 +39,7 @@ class Scene(QGraphicsScene):
         self.finish = False
         self.mode = ''
         self.value = 10
+        self.scale = 1
         self.length_line = 0
         self.length_pen = 0
         self.timer_event = None
@@ -121,9 +123,13 @@ class Scene(QGraphicsScene):
                 p.setPen(self.pen)
                 self.objectLine.append(p)
                 self.addItem(self.objectLine[-1])
+                self.length_line += int(math.fabs(
+                    math.sqrt((float(self.last_pos.x()) - float(self.history_pos[-1].x())) ** 2 +
+                              (float(self.last_pos.y()) - float(self.history_pos[-1].y())) ** 2)))*self.scale
+
+
                 self.history_pos.append(self.last_pos)
-                self.length_line += math.fabs(math.sqrt((float(self.last_pos.x())-float(self.history_pos[-1].x()))**2 +
-                                                        (float(self.last_pos.y())-float(self.history_pos[-1].y()))**2))
+
             else:
                 self.history_pos = [e.scenePos()]
                 self.current_pos = e.scenePos()
@@ -147,9 +153,9 @@ class Scene(QGraphicsScene):
 
         self.update()
         self.last_pos = self.current_pos
+
     def line_mouseMoveEvent(self, e):
         self.current_pos = e.scenePos()
-        print(float(self.current_pos.x()))
 
     def line_mouseReleaseEvent(self, e):
         if self.origin_pos:
@@ -341,6 +347,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Change size
         self.horizontalSlider.valueChanged.connect(self.changeSize)
 
+        # Change scale
+        self.comboBox.currentIndexChanged.connect(self.changeScale)
+
         self.show()
 
     def reset(self):
@@ -356,8 +365,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.scene.start = False
         if mode == 'Finish':
             self.scene.finish = False
-        if mode == 'Pen':
+        if mode == 'Line':
             self.scene.length_line = 0
+        if mode == 'Pen':
+            self.scene.length_pen = 0
         if mode == 'Zone':
             self.scene.fillZone.clear()
             for i in self.scene.fill:
@@ -369,6 +380,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scene.value = value
         self.scene.update()
         self.graphicsView.update()
+
+    def changeScale(self, index):
+        print(index)
+        self.scene.scale = scale[index]
+
 
     def new_file(self):
         """
