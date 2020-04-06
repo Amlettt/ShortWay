@@ -17,12 +17,6 @@ primary_color = QColor(Qt.red)
 
 class Scene(QGraphicsScene):
 
-    mode = ''
-    start = None
-    finish = None
-    primary_color = QColor(Qt.red)
-    value = 10
-    pen = None
     image = QGraphicsItemGroup()
     objectPoint = []
     objectStart = []
@@ -30,8 +24,7 @@ class Scene(QGraphicsScene):
     objectPen = []
     objectLine = []
     objectZone = []
-    length_line = 0
-    timer_event = None
+    fillZone = []
 
     def initialize(self):
         self.setSceneRect(QRectF(0, 62, *WINDOW_SIZE))  # координаты сцены относительно окна программы
@@ -46,6 +39,8 @@ class Scene(QGraphicsScene):
         self.mode = ''
         self.value = 10
         self.length_line = 0
+        self.timer_event = None
+        self.fill = []
 
     def set_mode(self, mode):
         self.timer_cleanup()
@@ -55,8 +50,10 @@ class Scene(QGraphicsScene):
         self.current_pos = None
         self.history_pos = None
         self.line = None
+        self.fillZone.clear()
 
-        self.pen = QPen(self.primary_color, self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
+        self.pen = QPen(QColor(Qt.red), self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
+        self.penZone = QPen(QColor(Qt.black), self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
 
         self.mode = mode
 
@@ -107,8 +104,7 @@ class Scene(QGraphicsScene):
             self.addItem(p)
             self.length_line += 1
             self.last_pos = e.scenePos()
-            print(self.last_pos)
-            # self.update()
+            self.update()
 
     def pen_mouseReleaseEvent(self, e):
         self.last_pos = None
@@ -152,22 +148,22 @@ class Scene(QGraphicsScene):
             self.update()
         self.reset_mode()
 
-    # Generic zone events
+    # Zone events
     def zone_mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             if self.history_pos:
+                coordinates = QPointF(self.history_pos[-1].x(), self.history_pos[-1].y())
+                self.fillZone.append(coordinates)
                 p = QGraphicsLineItem(self.history_pos[-1].x(), self.history_pos[-1].y(),
                                       self.last_pos.x(), self.last_pos.y())
-                p.setPen(self.pen)
+                p.setPen(self.penZone)
                 self.objectZone.append(p)
                 self.addItem(self.objectZone[-1])
                 self.history_pos.append(self.last_pos)
-                # print(self.line)
-                # copyLine = self.line
-                # self.objectZone.append(copyLine)
-                # self.addItem(self.objectZone[-1])
+
             else:
-                self.origin_pos = e.scenePos()  # my
+
+                self.origin_pos = e.scenePos()
                 self.history_pos = [e.scenePos()]
                 self.current_pos = e.scenePos()
                 self.timer_event = self.zone_timerEvent
@@ -182,7 +178,7 @@ class Scene(QGraphicsScene):
         if self.last_pos:
             p = QGraphicsLineItem(self.history_pos[-1].x(), self.history_pos[-1].y(),
                                   self.last_pos.x(), self.last_pos.y())
-            p.setPen(self.pen)
+            p.setPen(self.penZone)
             if self.line:
                 self.removeItem(self.line)
             self.line = p
@@ -193,22 +189,35 @@ class Scene(QGraphicsScene):
 
     def zone_mouseMoveEvent(self, e):
         self.current_pos = e.scenePos()
+        print(e.scenePos())
 
-    # def zone_mouseReleaseEvent(self, e):
-    #     self.current_pos = e.scenePos()
+    def zone_mouseReleaseEvent(self, e):
+        if self.origin_pos:
+            self.current_pos = e.scenePos()
 
     def zone_mouseDoubleClickEvent(self, e):
         self.timer_cleanup()
+        coordinates = QPointF(self.history_pos[-1].x(), self.history_pos[-1].y())
+        self.fillZone.append(coordinates)
         p = QGraphicsLineItem(self.history_pos[-1].x(), self.history_pos[-1].y(),
                               self.origin_pos.x(), self.origin_pos.y())
-        p.setPen(self.pen)
+        p.setPen(self.penZone)
         if self.line:
             self.removeItem(self.line)
         self.objectZone.append(p)
         self.addItem(p)
+
+        polygon = QPolygonF()
+        for i in self.fillZone:
+            polygon.append(i)
+        fill = QGraphicsPolygonItem()
+        fill.setBrush(QColor(Qt.darkBlue))
+        fill.setPolygon(polygon)
+        self.fill.append(fill)
+        self.addItem(fill)
+
         self.update()
         self.reset_mode()
-        print(self.objectZone)
 
     # Ellipse events
 
@@ -220,6 +229,7 @@ class Scene(QGraphicsScene):
             point.setPen(self.pen)  # настройки карандаша
             self.objectPoint.append(point)
             self.addItem(point)
+            self.update()
 
     # Finish events
 
@@ -235,6 +245,7 @@ class Scene(QGraphicsScene):
             self.objectFinish.append(finish_circle2)
             self.addItem(finish_circle2)
             self.finish = True
+            self.update()
 
     # Start events
 
@@ -251,6 +262,7 @@ class Scene(QGraphicsScene):
             self.objectStart.append(start)
             self.addItem(start)
             self.start = True
+            self.update()
 
 
     def changeSize(self, value):
@@ -329,6 +341,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.scene.finish = False
         if mode == 'Pen':
             self.scene.length_line = 0
+        if mode == 'Zone':
+            self.scene.fillZone.clear()
+            for i in self.scene.fill:
+                self.scene.removeItem(i)
         self.scene.mode = ''
 
     def changeSize(self, value):
