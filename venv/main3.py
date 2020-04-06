@@ -39,6 +39,7 @@ class Scene(QGraphicsScene):
         self.mode = ''
         self.value = 10
         self.length_line = 0
+        self.length_pen = 0
         self.timer_event = None
         self.fill = []
 
@@ -102,26 +103,42 @@ class Scene(QGraphicsScene):
             p.setPen(self.pen)
             self.objectPen.append(p)
             self.addItem(p)
-            self.length_line += 1
+            self.length_pen += 1
             self.last_pos = e.scenePos()
             self.update()
 
     def pen_mouseReleaseEvent(self, e):
         self.last_pos = None
-        print(self.length_line)
+        print(self.length_pen)
 
-    # Line events
+        # Line events
 
     def line_mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            self.origin_pos = e.scenePos()
-            self.current_pos = e.scenePos()
-            self.timer_event = self.line_timerEvent
+            if self.history_pos:
+                p = QGraphicsLineItem(self.history_pos[-1].x(), self.history_pos[-1].y(),
+                                          self.last_pos.x(), self.last_pos.y())
+                p.setPen(self.pen)
+                self.objectLine.append(p)
+                self.addItem(self.objectLine[-1])
+                self.history_pos.append(self.last_pos)
+                self.length_line += math.fabs(math.sqrt((float(self.last_pos.x())-float(self.history_pos[-1].x()))**2 +
+                                                        (float(self.last_pos.y())-float(self.history_pos[-1].y()))**2))
+            else:
+                self.history_pos = [e.scenePos()]
+                self.current_pos = e.scenePos()
+                self.timer_event = self.line_timerEvent
+
+        elif e.button() == Qt.RightButton and self.history_pos:
+            # Clean up, we're not drawing
+            self.timer_cleanup()
+            self.reset_mode()
+            self.update()
 
     def line_timerEvent(self):
         if self.last_pos:
-            p = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
-                                  self.last_pos.x(), self.last_pos.y())
+            p = QGraphicsLineItem(self.history_pos[-1].x(), self.history_pos[-1].y(),
+                                      self.last_pos.x(), self.last_pos.y())
             p.setPen(self.pen)
             if self.line:
                 self.removeItem(self.line)
@@ -130,25 +147,26 @@ class Scene(QGraphicsScene):
 
         self.update()
         self.last_pos = self.current_pos
-
     def line_mouseMoveEvent(self, e):
         self.current_pos = e.scenePos()
+        print(float(self.current_pos.x()))
 
     def line_mouseReleaseEvent(self, e):
-        if self.last_pos:
-            # Clear up indicator.
-            self.timer_cleanup()
-            p = QGraphicsLineItem(self.origin_pos.x(), self.origin_pos.y(),
-                                  e.scenePos().x(), e.scenePos().y())
-            p.setPen(self.pen)
-            if self.line:
-                self.removeItem(self.line)
-            self.objectLine.append(p)
-            self.addItem(p)
-            self.update()
+        if self.origin_pos:
+            self.current_pos = e.scenePos()
+
+    def line_mouseDoubleClickEvent(self, e):
+        self.timer_cleanup()
+
+        if self.line:
+            self.removeItem(self.line)
+
+        self.update()
         self.reset_mode()
+        print(self.length_line)
 
     # Zone events
+
     def zone_mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             if self.history_pos:
@@ -189,7 +207,6 @@ class Scene(QGraphicsScene):
 
     def zone_mouseMoveEvent(self, e):
         self.current_pos = e.scenePos()
-        print(e.scenePos())
 
     def zone_mouseReleaseEvent(self, e):
         if self.origin_pos:
