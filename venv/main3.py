@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from shortway2 import Ui_MainWindow
+from helpwindow import Ui_Form
 
 import os, math
 
@@ -15,6 +16,7 @@ WINDOW_SIZE = 798, 500
 PREVIEW_PEN = QPen(QColor(0xff, 0xff, 0xff), 1, Qt.SolidLine)
 primary_color = QColor(Qt.red)
 scale = [1, 1, 1, 2.75, 1, 1, 1, 1, 1]
+
 
 class Scene(QGraphicsScene):
 
@@ -105,7 +107,7 @@ class Scene(QGraphicsScene):
             p.setPen(self.pen)
             self.objectPen.append(p)
             self.addItem(p)
-            self.length_pen += 1
+            self.length_pen += 1*self.scale
             self.last_pos = e.scenePos()
             self.update()
 
@@ -313,7 +315,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.graphicsView.mapFromScene(0,62)
         # self.graphicsView.translate(0,62)
 
-
         # self.object.setFlag(QGraphicsItem.ItemIsMovable)
 
         # Setup the mode buttons
@@ -331,7 +332,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.timer.setInterval(100)
         self.timer.start()
 
-
         # Menu options
         self.actionNew.triggered.connect(self.new_file)
         self.actionOpen.triggered.connect(self.new_file)
@@ -343,6 +343,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionClearLine.triggered.connect(lambda: self.clear('Line'))
         self.actionClearPen.triggered.connect(lambda: self.clear('Pen'))
         self.actionClearZone.triggered.connect(lambda: self.clear('Zone'))
+        self.actionAbout_the_programm.triggered.connect(self.helpWindow)
+        # self.menuSolve.triggered.connect()
 
         # Change size
         self.horizontalSlider.valueChanged.connect(self.changeSize)
@@ -444,6 +446,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             p.end()  # конец рисовки я так понимаю
             img.save(path, "PNG")
 
+    def helpWindow(self):
+        # self.help = HelpWindow()
+        # self.help.show()
+        QMessageBox.about(window, "Help", "Программа для нахождения оптимального "
+                                    "маршрута на картах для спортивного ориентирования")
 
 if __name__ == '__main__':
     app = QApplication([])
