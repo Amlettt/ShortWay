@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from shortway2 import Ui_MainWindow
-from helpwindow import Ui_Form
+import algoritm
 
 import os, math
 
@@ -27,7 +27,10 @@ class Scene(QGraphicsScene):
     objectPen = []
     objectLine = []
     objectZone = []
-    fillZone = []
+    fillZone = []  # Сборщик всех точек зоны для ее заливки
+    points = []  # координаты точек КП
+    pathPoints = []  # координаты точек КП отсортированные по алгоритму
+    objectPath = []  # линии пути по алгоритму
 
     def initialize(self):
         self.setSceneRect(QRectF(0, 62, *WINDOW_SIZE))  # координаты сцены относительно окна программы
@@ -36,16 +39,18 @@ class Scene(QGraphicsScene):
         self.reset()
 
     def reset(self):
-        self.clear()
-        self.start = False
-        self.finish = False
+        self.clear()  # очистиить все изображения
+        self.startPoint = None
+        self.finishPoint = None  # финишная позиция координаты
+        self.points.clear()
+        self.pathPoints.clear()
         self.mode = ''
-        self.value = 10
-        self.scale = 1
-        self.length_line = 0
-        self.length_pen = 0
-        self.timer_event = None
-        self.fill = []
+        self.value = 10  # масштабирование карты начинается от 10 до 30
+        self.scale = 1  # коэфициент масштаба для расчета длины
+        self.length_line = 0  # длина пути линии
+        self.length_pen = 0  # длина пути карандаша
+        self.timer_event = None  # запуск обработчика таймера
+        self.fill = []  # сборщик всех закрашенных зон
 
     def set_mode(self, mode):
         self.timer_cleanup()
@@ -55,7 +60,7 @@ class Scene(QGraphicsScene):
         self.current_pos = None
         self.history_pos = None
         self.line = None
-        self.fillZone.clear()
+        self.fillZone.clear()  # очищаем точки предыдущей зоны для рисовки следующей
 
         self.pen = QPen(QColor(Qt.red), self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
         self.penZone = QPen(QColor(Qt.black), self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
@@ -125,9 +130,9 @@ class Scene(QGraphicsScene):
                 p.setPen(self.pen)
                 self.objectLine.append(p)
                 self.addItem(self.objectLine[-1])
-                self.length_line += int(math.fabs(
+                self.length_line += int((math.fabs(
                     math.sqrt((float(self.last_pos.x()) - float(self.history_pos[-1].x())) ** 2 +
-                              (float(self.last_pos.y()) - float(self.history_pos[-1].y())) ** 2)))*self.scale
+                              (float(self.last_pos.y()) - float(self.history_pos[-1].y())) ** 2)))*self.scale)
 
 
                 self.history_pos.append(self.last_pos)
@@ -252,14 +257,15 @@ class Scene(QGraphicsScene):
                                                 e.scenePos().y()-self.value,
                                                 self.value*2, self.value*2))
             point.setPen(self.pen)  # настройки карандаша
-            self.objectPoint.append(point)
+            self.objectPoint.append(point)  # сохраняем все круги для удаления последующего
             self.addItem(point)
+            self.points.append(e.scenePos())  # сохраняем все центра кругов для нахождения оптимального пути
             self.update()
 
     # Finish events
 
     def finish_mousePressEvent(self, e):
-        if not self.finish and e.button() == Qt.LeftButton:
+        if not self.finishPoint and e.button() == Qt.LeftButton:
             finish_circle = QGraphicsEllipseItem(QRectF(e.scenePos().x()-self.value, e.scenePos().y()-self.value, self.value*2, self.value*2))
             finish_circle.setPen(self.pen)
             self.objectFinish.append(finish_circle)
@@ -269,13 +275,13 @@ class Scene(QGraphicsScene):
             finish_circle2.setPen(self.pen)
             self.objectFinish.append(finish_circle2)
             self.addItem(finish_circle2)
-            self.finish = True
+            self.finishPoint = e.scenePos()
             self.update()
 
     # Start events
 
     def start_mousePressEvent(self, e):
-        if not self.start and e.button() == Qt.LeftButton:
+        if not self.startPoint and e.button() == Qt.LeftButton:
             polygon = QPolygonF()
             polygon.append(QPointF(e.scenePos().x(), e.scenePos().y() - self.value * 3 / 3 * math.sqrt(3)))
             polygon.append(QPointF(e.scenePos().x() - self.value * 3 / 2, e.scenePos().y() + self.value * 3 / 6 * math.sqrt(3)))
@@ -286,23 +292,24 @@ class Scene(QGraphicsScene):
 
             self.objectStart.append(start)
             self.addItem(start)
-            self.start = True
+            self.startPoint = e.scenePos()
             self.update()
-
 
     def changeSize(self, value):
         self.value = value
         self.scene.update()
         self.graphicsView.update()
 
+    def pathLine(self):
+        for i in range(len(self.pathPoints)-1):
+            p = QGraphicsLineItem(QPointF.x(self.pathPoints[i]), QPointF.y(self.pathPoints[i]),
+                                  QPointF.x(self.pathPoints[i+1]), QPointF.y(self.pathPoints[i+1]))
+            p.setPen(self.pen)
+            self.objectPath.append(p)
+            self.addItem(p)
+        self.update()
 
 class MainWindow(QMainWindow, Ui_MainWindow):
-
-    mode = ''
-    start = None
-    finish = None
-    primary_color = QColor(Qt.red)
-    value = 10
 
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
@@ -343,8 +350,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionClearLine.triggered.connect(lambda: self.clear('Line'))
         self.actionClearPen.triggered.connect(lambda: self.clear('Pen'))
         self.actionClearZone.triggered.connect(lambda: self.clear('Zone'))
-        self.actionAbout_the_programm.triggered.connect(self.helpWindow)
-        # self.menuSolve.triggered.connect()
+        self.actionAbout.triggered.connect(self.helpWindow)
+        self.actionShortWay.triggered.connect(self.shortWay)
+        self.actionOptimalWay.triggered.connect(self.shortWayOpt)
 
         # Change size
         self.horizontalSlider.valueChanged.connect(self.changeSize)
@@ -364,9 +372,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.scene.removeItem(i)
         fn.clear()
         if mode == 'Start':
-            self.scene.start = False
+            self.scene.startPoint = None
         if mode == 'Finish':
-            self.scene.finish = False
+            self.scene.finishPoint = None
+        if mode == 'Point':
+            self.scene.points.clear()
         if mode == 'Line':
             self.scene.length_line = 0
         if mode == 'Pen':
@@ -375,6 +385,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.scene.fillZone.clear()
             for i in self.scene.fill:
                 self.scene.removeItem(i)
+        if mode == 'Path':
+            self.scene.pathPoints.clear()
         self.scene.mode = ''
 
     def changeSize(self, value):
@@ -385,8 +397,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def changeScale(self, index):
         print(index)
-        self.scene.scale = scale[index]
-
+        self.scene.scale = scale[index]  # выбираем кооэфициент умножения от масштаба для расчета длины пути
 
     def new_file(self):
         """
@@ -447,10 +458,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             img.save(path, "PNG")
 
     def helpWindow(self):
-        # self.help = HelpWindow()
-        # self.help.show()
         QMessageBox.about(window, "Help", "Программа для нахождения оптимального "
                                     "маршрута на картах для спортивного ориентирования")
+    def shortWay(self):
+        # print(len(self.scene.points), QPointF.x(self.scene.points[0]))
+        print(self.scene.points)
+        if self.scene.pathPoints:  # надо проверять наличие линий, но лишнюю строчку не хочется
+            # вводить, проверяю наличие точек пути, был ли раньше построен путь или нет.
+            # без проверки рисовки. т.к. они зависимы
+            self.clear('Path')
+        self.scene.pathPoints = algoritm.neigbourAlgoritm(self.scene.points, self.scene.startPoint, self.scene.finishPoint)
+        self.scene.pathLine()
+        print(self.scene.points)
+
+    def shortWayOpt(self):
+        pass
 
 if __name__ == '__main__':
     app = QApplication([])
