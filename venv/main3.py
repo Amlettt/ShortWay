@@ -13,7 +13,6 @@ MODES = [
 
 WINDOW_SIZE = 798, 500
 
-PREVIEW_PEN = QPen(QColor(0xff, 0xff, 0xff), 1, Qt.SolidLine)
 primary_color = QColor(Qt.red)
 scale = [1, 1, 1, 2.75, 1, 1, 1, 1, 1]
 
@@ -42,10 +41,18 @@ class Scene(QGraphicsScene):
         self.clear()  # очистиить все изображения
         self.startPoint = None
         self.finishPoint = None  # финишная позиция координаты
+        self.objectPoint.clear()
+        self.objectStart.clear()
+        self.objectFinish.clear()
+        self.objectPen.clear()
+        self.objectLine.clear()
+        self.objectZone.clear()
+        self.fillZone.clear()
         self.points.clear()
         self.pathPoints.clear()
+        self.objectPath.clear()
         self.mode = ''
-        self.value = 10  # масштабирование карты начинается от 10 до 30
+        self.value = 1  # масштабирование карты начинается от 10 до 30
         self.scale = 1  # коэфициент масштаба для расчета длины
         self.length_line = 0  # длина пути линии
         self.length_pen = 0  # длина пути карандаша
@@ -62,8 +69,8 @@ class Scene(QGraphicsScene):
         self.line = None
         self.fillZone.clear()  # очищаем точки предыдущей зоны для рисовки следующей
 
-        self.pen = QPen(QColor(Qt.red), self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
-        self.penZone = QPen(QColor(Qt.black), self.value / 5, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
+        self.pen = QPen(QColor(Qt.red), self.value *2, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
+        self.penZone = QPen(QColor(Qt.black), self.value *2, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
 
         self.mode = mode
 
@@ -253,9 +260,9 @@ class Scene(QGraphicsScene):
 
     def point_mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            point = QGraphicsEllipseItem(QRectF(e.scenePos().x()-self.value,
-                                                e.scenePos().y()-self.value,
-                                                self.value*2, self.value*2))
+            point = QGraphicsEllipseItem(QRectF(e.scenePos().x()-self.value*10,
+                                                e.scenePos().y()-self.value*10,
+                                                self.value*20, self.value*20))
             point.setPen(self.pen)  # настройки карандаша
             self.objectPoint.append(point)  # сохраняем все круги для удаления последующего
             self.addItem(point)
@@ -266,12 +273,12 @@ class Scene(QGraphicsScene):
 
     def finish_mousePressEvent(self, e):
         if not self.finishPoint and e.button() == Qt.LeftButton:
-            finish_circle = QGraphicsEllipseItem(QRectF(e.scenePos().x()-self.value, e.scenePos().y()-self.value, self.value*2, self.value*2))
+            finish_circle = QGraphicsEllipseItem(QRectF(e.scenePos().x()-self.value*10, e.scenePos().y()-self.value*10, self.value*20, self.value*20))
             finish_circle.setPen(self.pen)
             self.objectFinish.append(finish_circle)
             self.addItem(finish_circle)
-            finish_circle2 = QGraphicsEllipseItem(QRectF(e.scenePos().x()-(self.value+self.value/3), e.scenePos().y()-(self.value+self.value/3),
-                                  (self.value+self.value/3)*2, (self.value+self.value/3)*2))
+            finish_circle2 = QGraphicsEllipseItem(QRectF(e.scenePos().x()-(self.value*10+self.value*10/3), e.scenePos().y()-(self.value*10+self.value*10/3),
+                                  (self.value*10+self.value*10/3)*2, (self.value*10+self.value*10/3)*2))
             finish_circle2.setPen(self.pen)
             self.objectFinish.append(finish_circle2)
             self.addItem(finish_circle2)
@@ -283,9 +290,9 @@ class Scene(QGraphicsScene):
     def start_mousePressEvent(self, e):
         if not self.startPoint and e.button() == Qt.LeftButton:
             polygon = QPolygonF()
-            polygon.append(QPointF(e.scenePos().x(), e.scenePos().y() - self.value * 3 / 3 * math.sqrt(3)))
-            polygon.append(QPointF(e.scenePos().x() - self.value * 3 / 2, e.scenePos().y() + self.value * 3 / 6 * math.sqrt(3)))
-            polygon.append(QPointF(e.scenePos().x() + self.value * 3 / 2, e.scenePos().y() + self.value * 3 / 6 * math.sqrt(3)))
+            polygon.append(QPointF(e.scenePos().x(), e.scenePos().y() - self.value * 30 / 3 * math.sqrt(3)))
+            polygon.append(QPointF(e.scenePos().x() - self.value * 30 / 2, e.scenePos().y() + self.value * 30 / 6 * math.sqrt(3)))
+            polygon.append(QPointF(e.scenePos().x() + self.value * 30 / 2, e.scenePos().y() + self.value * 30 / 6 * math.sqrt(3)))
             start = QGraphicsPolygonItem()
             start.setPen(self.pen)
             start.setPolygon(polygon)
@@ -295,10 +302,10 @@ class Scene(QGraphicsScene):
             self.startPoint = e.scenePos()
             self.update()
 
-    def changeSize(self, value):
-        self.value = value
-        self.scene.update()
-        self.graphicsView.update()
+    # def changeSize(self, value):
+    #     self.value = value
+    #     self.scene.update()
+    #     self.graphicsView.update()
 
     def pathLine(self):
         for i in range(len(self.pathPoints)-1):
@@ -364,7 +371,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def reset(self):
         self.scene.reset()
-        self.horizontalSlider.setValue(10)
+        self.horizontalSlider.setValue(1)
 
     def clear(self, mode):
         fn = getattr(self.scene, 'object%s' % mode)
@@ -461,15 +468,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         QMessageBox.about(window, "Help", "Программа для нахождения оптимального "
                                     "маршрута на картах для спортивного ориентирования")
     def shortWay(self):
-        # print(len(self.scene.points), QPointF.x(self.scene.points[0]))
-        print(self.scene.points)
         if self.scene.pathPoints:  # надо проверять наличие линий, но лишнюю строчку не хочется
             # вводить, проверяю наличие точек пути, был ли раньше построен путь или нет.
             # без проверки рисовки. т.к. они зависимы
             self.clear('Path')
         self.scene.pathPoints = algoritm.neigbourAlgoritm(self.scene.points, self.scene.startPoint, self.scene.finishPoint)
         self.scene.pathLine()
-        print(self.scene.points)
 
     def shortWayOpt(self):
         pass
