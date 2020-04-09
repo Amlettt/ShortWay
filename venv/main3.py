@@ -56,6 +56,7 @@ class Scene(QGraphicsScene):
         self.scale = 1  # коэфициент масштаба для расчета длины
         self.length_line = 0  # длина пути линии
         self.length_pen = 0  # длина пути карандаша
+        self.length_path = 0
         self.timer_event = None  # запуск обработчика таймера
         self.fill = []  # сборщик всех закрашенных зон
 
@@ -399,8 +400,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def changeSize(self, value):
         print(value)
         self.scene.value = value
-        self.scene.update()
-        self.graphicsView.update()
+        self.scene.reset_mode()
+        # self.scene.update()
 
     def changeScale(self, index):
         print(index)
@@ -472,8 +473,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             # вводить, проверяю наличие точек пути, был ли раньше построен путь или нет.
             # без проверки рисовки. т.к. они зависимы
             self.clear('Path')
-        self.scene.pathPoints = algoritm.neigbourAlgoritm(self.scene.points, self.scene.startPoint, self.scene.finishPoint)
+        self.scene.pathPoints, self.scene.length_path = algoritm.neigbourAlgoritm(self.scene.points,
+                                                                                  self.scene.startPoint,
+                                                                                  self.scene.finishPoint)
         self.scene.pathLine()
+        print('Длина пути по алгоритму: {}'.format(self.scene.length_path))
 
     def shortWayOpt(self):
         pass
