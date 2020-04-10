@@ -8,7 +8,7 @@ import algoritm
 import os, math
 
 MODES = [
-    'start', 'finish', 'point', 'line', 'pen', 'zone'
+    'start', 'finish', 'point', 'line', 'pen', 'zone', 'path'
 ]
 
 WINDOW_SIZE = 798, 500
@@ -20,16 +20,16 @@ scale = [1, 1, 1, 2.75, 1, 1, 1, 1, 1]
 class Scene(QGraphicsScene):
 
     image = QGraphicsItemGroup()
-    objectPoint = []
-    objectStart = []
-    objectFinish = []
-    objectPen = []
-    objectLine = []
-    objectZone = []
-    fillZone = []  # Сборщик всех точек зоны для ее заливки
+    object_point = []
+    object_start = []
+    object_finish = []
+    object_pen = []
+    object_line = []
+    object_zone = []
+    fill_zone = []  # Сборщик всех точек зоны для ее заливки
     points = []  # координаты точек КП
     pathPoints = []  # координаты точек КП отсортированные по алгоритму
-    objectPath = []  # линии пути по алгоритму
+    object_path = []  # линии пути по алгоритму
 
     def initialize(self):
         self.setSceneRect(QRectF(0, 62, *WINDOW_SIZE))  # координаты сцены относительно окна программы
@@ -41,16 +41,16 @@ class Scene(QGraphicsScene):
         self.clear()  # очистиить все изображения
         self.startPoint = None
         self.finishPoint = None  # финишная позиция координаты
-        self.objectPoint.clear()
-        self.objectStart.clear()
-        self.objectFinish.clear()
-        self.objectPen.clear()
-        self.objectLine.clear()
-        self.objectZone.clear()
-        self.fillZone.clear()
+        self.object_point.clear()
+        self.object_start.clear()
+        self.object_finish.clear()
+        self.object_pen.clear()
+        self.object_line.clear()
+        self.object_zone.clear()
+        self.fill_zone.clear()
         self.points.clear()
         self.pathPoints.clear()
-        self.objectPath.clear()
+        self.object_path.clear()
         self.mode = ''
         self.value = 1  # масштабирование карты начинается от 10 до 30
         self.scale = 1  # коэфициент масштаба для расчета длины
@@ -68,7 +68,7 @@ class Scene(QGraphicsScene):
         self.current_pos = None
         self.history_pos = None
         self.line = None
-        self.fillZone.clear()  # очищаем точки предыдущей зоны для рисовки следующей
+        self.fill_zone.clear()  # очищаем точки предыдущей зоны для рисовки следующей
 
         self.pen = QPen(QColor(Qt.red), self.value *2, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
         self.penZone = QPen(QColor(Qt.black), self.value *2, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
@@ -118,7 +118,7 @@ class Scene(QGraphicsScene):
             p = QGraphicsLineItem(self.last_pos.x(), self.last_pos.y(),
                                   e.scenePos().x(),e.scenePos().y())
             p.setPen(self.pen)
-            self.objectPen.append(p)
+            self.object_pen.append(p)
             self.addItem(p)
             self.length_pen += 1*self.scale
             self.last_pos = e.scenePos()
@@ -136,8 +136,8 @@ class Scene(QGraphicsScene):
                 p = QGraphicsLineItem(self.history_pos[-1].x(), self.history_pos[-1].y(),
                                           self.last_pos.x(), self.last_pos.y())
                 p.setPen(self.pen)
-                self.objectLine.append(p)
-                self.addItem(self.objectLine[-1])
+                self.object_line.append(p)
+                self.addItem(self.object_line[-1])
                 self.length_line += int((math.fabs(
                     math.sqrt((float(self.last_pos.x()) - float(self.history_pos[-1].x())) ** 2 +
                               (float(self.last_pos.y()) - float(self.history_pos[-1].y())) ** 2)))*self.scale)
@@ -192,12 +192,12 @@ class Scene(QGraphicsScene):
         if e.button() == Qt.LeftButton:
             if self.history_pos:
                 coordinates = QPointF(self.history_pos[-1].x(), self.history_pos[-1].y())
-                self.fillZone.append(coordinates)
+                self.fill_zone.append(coordinates)
                 p = QGraphicsLineItem(self.history_pos[-1].x(), self.history_pos[-1].y(),
                                       self.last_pos.x(), self.last_pos.y())
                 p.setPen(self.penZone)
-                self.objectZone.append(p)
-                self.addItem(self.objectZone[-1])
+                self.object_zone.append(p)
+                self.addItem(self.object_zone[-1])
                 self.history_pos.append(self.last_pos)
 
             else:
@@ -236,21 +236,22 @@ class Scene(QGraphicsScene):
     def zone_mouseDoubleClickEvent(self, e):
         self.timer_cleanup()
         coordinates = QPointF(self.history_pos[-1].x(), self.history_pos[-1].y())
-        self.fillZone.append(coordinates)
+        self.fill_zone.append(coordinates)
         p = QGraphicsLineItem(self.history_pos[-1].x(), self.history_pos[-1].y(),
                               self.origin_pos.x(), self.origin_pos.y())
         p.setPen(self.penZone)
         if self.line:
             self.removeItem(self.line)
-        self.objectZone.append(p)
+        self.object_zone.append(p)
         self.addItem(p)
 
         polygon = QPolygonF()
-        for i in self.fillZone:
+        for i in self.fill_zone:
             polygon.append(i)
         fill = QGraphicsPolygonItem()
         fill.setBrush(QColor(Qt.darkBlue))
         fill.setPolygon(polygon)
+        fill.setOpacity(0.25)  # установка прозрачности заливки
         self.fill.append(fill)
         self.addItem(fill)
 
@@ -265,7 +266,7 @@ class Scene(QGraphicsScene):
                                                 e.scenePos().y()-self.value*10,
                                                 self.value*20, self.value*20))
             point.setPen(self.pen)  # настройки карандаша
-            self.objectPoint.append(point)  # сохраняем все круги для удаления последующего
+            self.object_point.append(point)  # сохраняем все круги для удаления последующего
             self.addItem(point)
             self.points.append(e.scenePos())  # сохраняем все центра кругов для нахождения оптимального пути
             self.update()
@@ -276,12 +277,12 @@ class Scene(QGraphicsScene):
         if not self.finishPoint and e.button() == Qt.LeftButton:
             finish_circle = QGraphicsEllipseItem(QRectF(e.scenePos().x()-self.value*10, e.scenePos().y()-self.value*10, self.value*20, self.value*20))
             finish_circle.setPen(self.pen)
-            self.objectFinish.append(finish_circle)
+            self.object_finish.append(finish_circle)
             self.addItem(finish_circle)
             finish_circle2 = QGraphicsEllipseItem(QRectF(e.scenePos().x()-(self.value*10+self.value*10/3), e.scenePos().y()-(self.value*10+self.value*10/3),
                                   (self.value*10+self.value*10/3)*2, (self.value*10+self.value*10/3)*2))
             finish_circle2.setPen(self.pen)
-            self.objectFinish.append(finish_circle2)
+            self.object_finish.append(finish_circle2)
             self.addItem(finish_circle2)
             self.finishPoint = e.scenePos()
             self.update()
@@ -298,7 +299,7 @@ class Scene(QGraphicsScene):
             start.setPen(self.pen)
             start.setPolygon(polygon)
 
-            self.objectStart.append(start)
+            self.object_start.append(start)
             self.addItem(start)
             self.startPoint = e.scenePos()
             self.update()
@@ -313,7 +314,7 @@ class Scene(QGraphicsScene):
             p = QGraphicsLineItem(QPointF.x(self.pathPoints[i]), QPointF.y(self.pathPoints[i]),
                                   QPointF.x(self.pathPoints[i+1]), QPointF.y(self.pathPoints[i+1]))
             p.setPen(self.pen)
-            self.objectPath.append(p)
+            self.object_path.append(p)
             self.addItem(p)
         self.update()
 
@@ -336,7 +337,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.mode_group = QButtonGroup(self)
         self.mode_group.setExclusive(True)
 
-        for mode in MODES:
+        for mode in MODES[:-1]:
+
             btn = getattr(self, '%sButton' % mode)
             btn.pressed.connect(lambda mode=mode: self.scene.set_mode(mode))
             self.mode_group.addButton(btn)
@@ -352,12 +354,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionOpen.triggered.connect(self.new_file)
         self.actionSave.triggered.connect(self.save_file)
         self.actionClearAll.triggered.connect(self.reset)
-        self.actionClearStart.triggered.connect(lambda: self.clear('Start'))
-        self.actionClearFinish.triggered.connect(lambda: self.clear('Finish'))
-        self.actionClearPoint.triggered.connect(lambda: self.clear('Point'))
-        self.actionClearLine.triggered.connect(lambda: self.clear('Line'))
-        self.actionClearPen.triggered.connect(lambda: self.clear('Pen'))
-        self.actionClearZone.triggered.connect(lambda: self.clear('Zone'))
+        self.actionClearStart.triggered.connect(lambda: self.clear('start'))
+        self.actionClearFinish.triggered.connect(lambda: self.clear('finish'))
+        self.actionClearPoint.triggered.connect(lambda: self.clear('point'))
+        self.actionClearLine.triggered.connect(lambda: self.clear('line'))
+        self.actionClearPen.triggered.connect(lambda: self.clear('pen'))
+        self.actionClearZone.triggered.connect(lambda: self.clear('zone'))
         self.actionAbout.triggered.connect(self.helpWindow)
         self.actionShortWay.triggered.connect(self.shortWay)
         self.actionOptimalWay.triggered.connect(self.shortWayOpt)
@@ -375,33 +377,47 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.horizontalSlider.setValue(1)
 
     def clear(self, mode):
-        fn = getattr(self.scene, 'object%s' % mode)
+        fn = getattr(self.scene, 'object_%s' % mode)
         for i in fn:
             self.scene.removeItem(i)
         fn.clear()
-        if mode == 'Start':
+        if mode == 'start':
             self.scene.startPoint = None
-        if mode == 'Finish':
+        if mode == 'finish':
             self.scene.finishPoint = None
-        if mode == 'Point':
+        if mode == 'point':
             self.scene.points.clear()
-        if mode == 'Line':
+        if mode == 'line':
             self.scene.length_line = 0
-        if mode == 'Pen':
+        if mode == 'pen':
             self.scene.length_pen = 0
-        if mode == 'Zone':
+        if mode == 'zone':
             self.scene.fillZone.clear()
             for i in self.scene.fill:
                 self.scene.removeItem(i)
-        if mode == 'Path':
+        if mode == 'path':
             self.scene.pathPoints.clear()
+            # self.scene.length_path = 0
         self.scene.mode = ''
 
     def changeSize(self, value):
         print(value)
         self.scene.value = value
         self.scene.reset_mode()
-        # self.scene.update()
+
+        # self.scene.clear()
+        # self.pen = QPen(QColor(Qt.red), self.value * 2, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
+        for mode in MODES:
+            # fn = getattr(self.scene, 'object_%s' % mode)
+            # for i in fn:
+            #     self.scene.removeItem(i)
+            fn = getattr(self.scene, 'object_%s' % mode)
+            for i in fn:
+                # self.scene.removeItem(i)
+                i.setPen(self.scene.pen)
+                # self.scene.addItem(i)
+
+        self.scene.update()
 
     def changeScale(self, index):
         print(index)
