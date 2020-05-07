@@ -387,15 +387,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     # подсчет кеоличества кп. вывод на экран
     def countPoint(self):
-        a =  str(len(self.scene.points))
-        # self.lineEdit.clear()
-        self.lineEdit.setText(a)
-        # self.lineEdit.update()
-
+        self.lineEdit.setText(str(len(self.scene.points)))
 
     # полный сброс всех элементов в программе
     def reset(self):
         self.scene.reset()
+        self.lineEdit.clear()
+        self.plainTextEdit.clear()  # очищаем длину пути в текстовом виджете
         self.horizontalSlider.setValue(1)
 
     # очистка отдельных элементов программы
@@ -409,6 +407,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if mode == 'finish':
             self.scene.finishPoint = None
         if mode == 'point':
+            self.lineEdit.clear()
             self.scene.points.clear()
         if mode == 'line':
             self.scene.length_line = 0
@@ -421,6 +420,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if mode == 'path':
             self.scene.pathPoints.clear()
             self.scene.length_path = 0
+            self.plainTextEdit.clear()  # очищаем длину пути в текстовом виджете
         self.scene.mode = ''
 
     def changeSize(self, value):
@@ -531,7 +531,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                                         self.scene.startPoint,
                                                         self.scene.finishPoint)
         self.scene.pathLine()
-        print('Длина пути по алгоритму: {}'.format(self.scene.length_path))
+        self.plainTextEdit.appendPlainText('Длина пути по алгоритму: {}'.format(round(self.scene.length_path, 2)))
+        print('Длина пути по алгоритму: {}'.format(round(self.scene.length_path, 2)))
 
     def shortWayOpt(self):
         pass
