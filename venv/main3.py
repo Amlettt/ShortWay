@@ -3,23 +3,27 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
 from shortway2 import Ui_MainWindow
-import algoritm
+import algoritm, genetic, SA2
 
 import os, math
 
 MODES = [
     'start', 'finish', 'point', 'line', 'pen', 'zone', 'path'
-]
+]  # названия кнопок для работы по обработке с испускаемым от них сигналом
 
-WINDOW_SIZE = 798, 500
+WINDOW_SIZE = 798, 500  # размер окна графической сцены
 
-primary_color = QColor(Qt.red)
-scale = [1, 1, 1, 2.75, 1, 1, 1, 1, 1]
+primary_color = QColor(Qt.red)  # основной цвет
+scale = [1, 1, 1, 2.75, 1, 1, 1, 1, 1]  # коэфициент масштаба для рассчета длины маршрута из комбобокса
 
 
 class Scene(QGraphicsScene):
 
+    countPoint = pyqtSignal()  # попытка передачи сигнала для подсчета количества поставленных точек КП
+
     image = QGraphicsItemGroup()
+
+    # списки нарисованных объектов на сцене. необходимы для возможности их удаления
     object_point = []
     object_start = []
     object_finish = []
@@ -30,17 +34,20 @@ class Scene(QGraphicsScene):
     points = []  # координаты точек КП
     pathPoints = []  # координаты точек КП отсортированные по алгоритму
     object_path = []  # линии пути по алгоритму
-
+    # round_ = False  # раунд запуска алгоритма. если 0 то он начинается заново, если не 0 то с предыдущего лучшего решения
+    # t = 0  # фиксирует кол-во пунктов изменилось или нет. для повторного запуска алгоритма
     def initialize(self):
         self.setSceneRect(QRectF(0, 62, *WINDOW_SIZE))  # координаты сцены относительно окна программы
-        felt = QBrush(QColor(Qt.white))  # цвет фонф
+        felt = QBrush(QColor(Qt.white))  # цвет фона
         self.setBackgroundBrush(felt)  # установка фона
         self.reset()
 
     def reset(self):
         self.clear()  # очистиить все изображения
         self.startPoint = None
-        self.finishPoint = None  # финишная позиция координаты
+        self.finishPoint = None  # финишная позиция пункта в координатах
+
+        # очистка списков объектов сцены
         self.object_point.clear()
         self.object_start.clear()
         self.object_finish.clear()
@@ -51,23 +58,26 @@ class Scene(QGraphicsScene):
         self.points.clear()
         self.pathPoints.clear()
         self.object_path.clear()
-        self.mode = ''
-        self.value = 1  # масштабирование карты начинается от 10 до 30
-        self.scale = 1  # коэфициент масштаба для расчета длины
+        # self.round_ = False
+        # self.t = 0
+        self.mode = ''  # очищаем мод, чтобы сбросить то чем мы сейчас рисовали
+        self.value = 1  # масштабирование карты начинается от 1 до 5
+        self.scale = 1  # начальный коэфициент масштаба для расчета длины
         self.length_line = 0  # длина пути линии
         self.length_pen = 0  # длина пути карандаша
-        self.length_path = 0
+        self.length_path = 0  # длина пути маршрута по алгоритму
         self.timer_event = None  # запуск обработчика таймера
         self.fill = []  # сборщик всех закрашенных зон
 
     def set_mode(self, mode):
         self.timer_cleanup()
 
+        # позиции координат при движении мыши
         self.last_pos = None
         self.origin_pos = None
         self.current_pos = None
         self.history_pos = None
-        self.line = None
+        self.line = None  # линия для динамической отрисовки линии и зоны. постоянно рисуется и удаляется при движени мыши
         self.fill_zone.clear()  # очищаем точки предыдущей зоны для рисовки следующей
 
         self.pen = QPen(QColor(Qt.red), self.value *2, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
@@ -269,6 +279,7 @@ class Scene(QGraphicsScene):
             self.object_point.append(point)  # сохраняем все круги для удаления последующего
             self.addItem(point)
             self.points.append(e.scenePos())  # сохраняем все центра кругов для нахождения оптимального пути
+            self.countPoint.emit()  # сигнал lineEdit что добавлен новый город
             self.update()
 
     # Finish events
@@ -363,6 +374,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionAbout.triggered.connect(self.helpWindow)
         self.actionShortWay.triggered.connect(self.shortWay)
         self.actionOptimalWay.triggered.connect(self.shortWayOpt)
+        self.scene.countPoint.connect(self.countPoint)
+
 
         # Change size
         self.horizontalSlider.valueChanged.connect(self.changeSize)
@@ -372,10 +385,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.show()
 
+    # подсчет кеоличества кп. вывод на экран
+    def countPoint(self):
+        a =  str(len(self.scene.points))
+        # self.lineEdit.clear()
+        self.lineEdit.setText(a)
+        # self.lineEdit.update()
+
+
+    # полный сброс всех элементов в программе
     def reset(self):
         self.scene.reset()
         self.horizontalSlider.setValue(1)
 
+    # очистка отдельных элементов программы
     def clear(self, mode):
         fn = getattr(self.scene, 'object_%s' % mode)
         for i in fn:
@@ -397,26 +420,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.scene.removeItem(i)
         if mode == 'path':
             self.scene.pathPoints.clear()
-            # self.scene.length_path = 0
+            self.scene.length_path = 0
         self.scene.mode = ''
 
     def changeSize(self, value):
         print(value)
-        self.scene.value = value
+        # self.scene.value = value
         self.scene.reset_mode()
-
-        # self.scene.clear()
-        # self.pen = QPen(QColor(Qt.red), self.value * 2, Qt.SolidLine, Qt.SquareCap, Qt.RoundJoin)
+        b = 1
+        if self.scene.value < value:
+            self.scene.value = value
+            b = 2
+        else:
+            self.scene.value = value
+            b = 0.5
         for mode in MODES:
-            # fn = getattr(self.scene, 'object_%s' % mode)
-            # for i in fn:
-            #     self.scene.removeItem(i)
             fn = getattr(self.scene, 'object_%s' % mode)
             for i in fn:
-                # self.scene.removeItem(i)
-                i.setPen(self.scene.pen)
-                # self.scene.addItem(i)
-
+                # i.setPen(self.scene.pen)
+                self.graphicsView.scale(b,b)
+                # self.graphicsView.shear()  # сдвиг предсьавления на х,у
         self.scene.update()
 
     def changeScale(self, index):
@@ -488,10 +511,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self.scene.pathPoints:  # надо проверять наличие линий, но лишнюю строчку не хочется
             # вводить, проверяю наличие точек пути, был ли раньше построен путь или нет.
             # без проверки рисовки. т.к. они зависимы
-            self.clear('Path')
-        self.scene.pathPoints, self.scene.length_path = algoritm.neigbourAlgoritm(self.scene.points,
-                                                                                  self.scene.startPoint,
-                                                                                  self.scene.finishPoint)
+            # k = self.scene.pathPoints.copy()
+            self.clear('path')
+        # self.scene.pathPoints, self.scene.length_path = algoritm.neigbourAlgoritm(self.scene.points,
+        #                                                                           self.scene.startPoint,
+        #                                                                           self.scene.finishPoint)
+        # self.scene.pathPoints = genetic.genetic(self.scene.points,
+        #                                                                           self.scene.startPoint,
+        #                                                                           self.scene.finishPoint)
+        # if self.scene.round_ is not True or self.scene.t != self.scene.points:
+        #     self.scene.t = len(self.scene.points)
+        #     self.scene.round_ = True
+        #     self.scene.pathPoints, self.scene.length_path = SA2.sa(self.scene.points,
+        #                                                        self.scene.startPoint,
+        #                                                       self.scene.finishPoint)
+        # elif self.scene.round_ and self.scene.t == self.scene.points:
+        #     self.scene.pathPoints, self.scene.length_path = SA2.sa2(k)
+        self.scene.pathPoints, self.scene.length_path = SA2.sa(self.scene.points,
+                                                        self.scene.startPoint,
+                                                        self.scene.finishPoint)
         self.scene.pathLine()
         print('Длина пути по алгоритму: {}'.format(self.scene.length_path))
 
